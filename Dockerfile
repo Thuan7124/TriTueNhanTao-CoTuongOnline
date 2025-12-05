@@ -1,11 +1,14 @@
 # Sử dụng Python 3.11 với Debian
 FROM python:3.11-slim-bookworm
 
-# Cài đặt dependencies cho ODBC
+# Cài đặt dependencies cho ODBC và build tools
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     apt-transport-https \
+    g++ \
+    gcc \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Cài đặt Microsoft ODBC Driver 17
