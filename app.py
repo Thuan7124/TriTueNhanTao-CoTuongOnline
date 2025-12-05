@@ -536,8 +536,7 @@ def api_create_game():
     {
         "game_type": "pve" | "pvp",
         "ai_difficulty": "easy" | "medium" | "hard" (cho pve),
-        "player_color": "red" | "black" (màu người chơi chọn),
-        "player_goes_first": true | false (người chơi đi trước hay không)
+        "player_color": "red" | "black" (màu người chơi chọn)
     }
     """
     data = request.json or {}
@@ -545,17 +544,6 @@ def api_create_game():
     game_type = data.get("game_type", "pve")
     ai_difficulty = data.get("ai_difficulty", "medium")
     player_color = data.get("player_color", "red")
-    player_goes_first = data.get("player_goes_first", True)  # Mặc định đi trước
-    
-    # Xác định ai đi trước (first_turn)
-    # Nếu player_goes_first = True, first_turn = player_color
-    # Nếu player_goes_first = False, first_turn = màu còn lại (AI/đối thủ)
-    if player_goes_first:
-        first_turn = player_color
-    else:
-        first_turn = 'black' if player_color == 'red' else 'red'
-    
-    logger.info(f"[create_game] player_color={player_color}, player_goes_first={player_goes_first}, first_turn={first_turn}")
     
     # Tạo room code
     room_code = generate_room_code()
@@ -584,8 +572,7 @@ def api_create_game():
         red_player_id=red_player_id,
         black_player_id=black_player_id,
         red_player_name=red_player_name,
-        black_player_name=black_player_name,
-        first_turn=first_turn
+        black_player_name=black_player_name
     )
     
     if not game_id:
@@ -597,8 +584,6 @@ def api_create_game():
         
         # Tạo board và lưu vào memory
         board = create_board()
-        board.turn = first_turn  # Set lượt đi đầu tiên
-        
         ai_color = 'black' if player_color == 'red' else 'red'
         ai_instance = ChessAI(level=ai_difficulty, color=ai_color)
         
@@ -608,7 +593,6 @@ def api_create_game():
             'game_type': game_type,
             'ai': ai_instance,
             'ai_color': ai_color,
-            'first_turn': first_turn,
             'players': {
                 'red': {'user_id': red_player_id, 'socket_id': None, 'name': red_player_name},
                 'black': {'user_id': black_player_id, 'socket_id': None, 'name': black_player_name}
@@ -616,23 +600,18 @@ def api_create_game():
         }
         ROOM_TO_GAME[room_code] = game_id
         
-        logger.info(f"[create_game] ai_color={ai_color}, first_turn={first_turn}, board.turn before AI={board.turn}")
-        
-        # Nếu AI đi trước
-        if first_turn == ai_color:
-            logger.info(f"[create_game] AI goes first, making move...")
+        # Nếu AI đi trước (người chơi chọn đen)
+        if player_color == 'black':
             ai_move = ai_instance.choose_move(board)
             if ai_move:
                 fr, fc, tr, tc = ai_move
                 board.move(fr, fc, tr, tc)
-                logger.info(f"[create_game] AI moved, board.turn after={board.turn}")
     else:
         # PvP: Tạo waiting room
         WAITING_ROOMS[room_code] = {
             'game_id': game_id,
             'host_id': user_id,
             'host_color': player_color,
-            'first_turn': first_turn,
             'created_at': datetime.now(),
             'players': {
                 player_color: {
@@ -649,7 +628,6 @@ def api_create_game():
         "game_id": game_id,
         "room_code": room_code,
         "game_type": game_type,
-        "first_turn": first_turn,
         "message": "Game đã được tạo"
     })
 

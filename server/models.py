@@ -183,7 +183,7 @@ class GameModel:
     
     @staticmethod
     def create(room_code, game_type, ai_difficulty=None, red_player_id=None, black_player_id=None,
-               red_player_name=None, black_player_name=None, first_turn='red'):
+               red_player_name=None, black_player_name=None):
         """
         Tạo game mới
         
@@ -195,7 +195,6 @@ class GameModel:
             black_player_id: ID người chơi đen
             red_player_name: Tên người chơi đỏ (Guest/AI/username)
             black_player_name: Tên người chơi đen (Guest/AI/username)
-            first_turn: 'red' hoặc 'black' - ai đi trước
         
         Returns:
             game_id nếu thành công
@@ -207,23 +206,19 @@ class GameModel:
                  red_player_name, black_player_name),
                 fetch_one=True
             )
-            game_id = result.get('game_id') if result else None
-            # Cập nhật current_turn nếu khác mặc định
-            if game_id and first_turn != 'red':
-                GameModel.update_turn(game_id, first_turn)
-            return game_id
+            return result.get('game_id') if result else None
         except Exception as e:
             # Fallback nếu stored procedure chưa được update
             logger.warning(f"Lỗi gọi sp_CreateGame: {e}")
             # Thử INSERT trực tiếp
             try:
                 query = """
-                    INSERT INTO Games (room_code, game_type, ai_difficulty, red_player_id, black_player_id, current_turn)
-                    VALUES (?, ?, ?, ?, ?, ?);
+                    INSERT INTO Games (room_code, game_type, ai_difficulty, red_player_id, black_player_id)
+                    VALUES (?, ?, ?, ?, ?);
                     SELECT SCOPE_IDENTITY() as game_id;
                 """
                 result = db.execute_query(query, (room_code, game_type, ai_difficulty, 
-                                                   red_player_id, black_player_id, first_turn), fetch_one=True)
+                                                   red_player_id, black_player_id), fetch_one=True)
                 return result.get('game_id') if result else None
             except Exception as e2:
                 logger.error(f"Lỗi INSERT trực tiếp: {e2}")

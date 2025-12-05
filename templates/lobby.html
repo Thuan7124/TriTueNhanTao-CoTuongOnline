@@ -83,22 +83,10 @@
                         <label>Chọn màu quân:</label>
                         <div class="color-buttons">
                             <button class="color-btn active" data-color="red">
-                                <span class="color-dot red"></span> Quân Đỏ
+                                <span class="color-dot red"></span> Quân Đỏ (đi trước)
                             </button>
                             <button class="color-btn" data-color="black">
                                 <span class="color-dot black"></span> Quân Đen
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="turn-select">
-                        <label>Lượt đi:</label>
-                        <div class="turn-buttons">
-                            <button class="turn-btn active" data-turn="first">
-                                <i class="fas fa-forward"></i> Đi trước
-                            </button>
-                            <button class="turn-btn" data-turn="second">
-                                <i class="fas fa-backward"></i> Đi sau
                             </button>
                         </div>
                     </div>
@@ -128,17 +116,6 @@
                                     </button>
                                     <button class="color-btn" data-color="black">
                                         <span class="color-dot black"></span> Đen
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="turn-select">
-                                <label>Lượt đi:</label>
-                                <div class="turn-buttons pvp-turn">
-                                    <button class="turn-btn active" data-turn="first">
-                                        <i class="fas fa-forward"></i> Đi trước
-                                    </button>
-                                    <button class="turn-btn" data-turn="second">
-                                        <i class="fas fa-backward"></i> Đi sau
                                     </button>
                                 </div>
                             </div>
@@ -205,9 +182,7 @@
         // State
         let selectedDifficulty = 'easy';
         let selectedColorAI = 'red';
-        let selectedTurnAI = 'first';  // first = đi trước, second = đi sau
         let selectedColorPVP = 'red';
-        let selectedTurnPVP = 'first';
         let createdRoomCode = '';
 
         // Difficulty selection
@@ -228,30 +203,12 @@
             });
         });
 
-        // Turn selection for AI
-        document.querySelectorAll('.mode-card:first-child .turn-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.parentElement.querySelectorAll('.turn-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                selectedTurnAI = this.dataset.turn;
-            });
-        });
-
         // Color selection for PVP
         document.querySelectorAll('.pvp-color .color-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 this.parentElement.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedColorPVP = this.dataset.color;
-            });
-        });
-
-        // Turn selection for PVP
-        document.querySelectorAll('.pvp-turn .turn-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.parentElement.querySelectorAll('.turn-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                selectedTurnPVP = this.dataset.turn;
             });
         });
 
@@ -265,8 +222,7 @@
                     body: JSON.stringify({
                         game_type: 'pve',
                         ai_difficulty: selectedDifficulty,
-                        player_color: selectedColorAI,
-                        player_goes_first: selectedTurnAI === 'first'
+                        player_color: selectedColorAI
                     })
                 });
                 const data = await response.json();
@@ -292,8 +248,7 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         game_type: 'pvp',
-                        player_color: selectedColorPVP,
-                        player_goes_first: selectedTurnPVP === 'first'
+                        player_color: selectedColorPVP
                     })
                 });
                 const data = await response.json();
