@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông tin cá nhân - {{ user.username }} | Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <a href="/">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng Online</span>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Trang chủ</a>
+                <a href="/lobby" class="nav-link">Chơi ngay</a>
+                <a href="/leaderboard" class="nav-link">Xếp hạng</a>
+            </nav>
+            <div class="auth-buttons" id="authButtons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="elo"><i class="fas fa-trophy"></i> {{ user.elo_rating or 1200 }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item active">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item" onclick="switchTab('history')">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <button class="btn btn-outline" onclick="window.location.href='/'">Đăng nhập</button>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="profile-main">
+        <div class="container">
+            <div class="profile-container">
+                <!-- Profile Sidebar -->
+                <aside class="profile-sidebar">
+                    <div class="profile-card">
+                        <div class="avatar-section">
+                            <div class="avatar-wrapper">
+                                <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="profile-avatar" id="profileAvatar">
+                                <button class="avatar-edit-btn" onclick="document.getElementById('avatarInput').click()">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                                <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(this)">
+                            </div>
+                            <h2 class="profile-username">{{ user.username }}</h2>
+                            <p class="profile-email">{{ user.email }}</p>
+                        </div>
+                        
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-value elo-value">{{ user.elo_rating or 1200 }}</span>
+                                <span class="stat-label">Điểm xếp hạng</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">{{ user.games_played or 0 }}</span>
+                                <span class="stat-label">Trận đã chơi</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value win-value">{{ user.games_won or 0 }}</span>
+                                <span class="stat-label">Thắng</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value lose-value">{{ user.games_lost or 0 }}</span>
+                                <span class="stat-label">Thua</span>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-extra-stats">
+                            <div class="extra-stat">
+                                <i class="fas fa-fire"></i>
+                                <span>Chuỗi thắng hiện tại: <strong>{{ user.win_streak or 0 }}</strong></span>
+                            </div>
+                            <div class="extra-stat">
+                                <i class="fas fa-medal"></i>
+                                <span>Chuỗi thắng cao nhất: <strong>{{ user.max_win_streak or 0 }}</strong></span>
+                            </div>
+                            <div class="extra-stat">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Tham gia: <strong>{{ user.created_at[:10] if user.created_at else 'N/A' }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Profile Content -->
+                <div class="profile-content">
+                    <!-- Tab Navigation -->
+                    <div class="profile-tabs">
+                        <button class="tab-btn active" data-tab="info" onclick="switchTab('info')">
+                            <i class="fas fa-user-edit"></i> Thông tin
+                        </button>
+                        <button class="tab-btn" data-tab="password" onclick="switchTab('password')">
+                            <i class="fas fa-key"></i> Đổi mật khẩu
+                        </button>
+                        <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </button>
+                    </div>
+
+                    <!-- Tab: Thông tin cá nhân -->
+                    <div class="tab-content active" id="tab-info">
+                        <div class="content-card">
+                            <h3><i class="fas fa-user-edit"></i> Chỉnh sửa thông tin</h3>
+                            <form id="profileForm" onsubmit="updateProfile(event)">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="editUsername">Tên đăng nhập</label>
+                                        <input type="text" id="editUsername" value="{{ user.username }}" disabled>
+                                        <small class="form-hint">Tên đăng nhập không thể thay đổi</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editDisplayName">Tên hiển thị</label>
+                                        <input type="text" id="editDisplayName" value="{{ user.display_name or user.username }}" maxlength="50" placeholder="Tên bạn muốn hiển thị">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="editEmail">Email</label>
+                                    <input type="email" id="editEmail" value="{{ user.email }}" required>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="editBirthday">Ngày sinh</label>
+                                        <input type="date" id="editBirthday" value="{{ user.birthday or '' }}" max="{{ today }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editGender">Giới tính</label>
+                                        <select id="editGender">
+                                            <option value="">-- Chọn --</option>
+                                            <option value="male" {{ 'selected' if user.gender == 'male' else '' }}>Nam</option>
+                                            <option value="female" {{ 'selected' if user.gender == 'female' else '' }}>Nữ</option>
+                                            <option value="other" {{ 'selected' if user.gender == 'other' else '' }}>Khác</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="editPhone">Số điện thoại</label>
+                                        <input type="tel" id="editPhone" value="{{ user.phone or '' }}" placeholder="0123456789" pattern="[0-9]{10,11}">
+                                        <small class="form-hint">10-11 chữ số</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editLocation">Địa chỉ</label>
+                                        <input type="text" id="editLocation" value="{{ user.location or '' }}" maxlength="100" placeholder="Thành phố, Quốc gia">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="editBio">Giới thiệu bản thân</label>
+                                    <textarea id="editBio" class="bio-textarea" placeholder="Viết vài dòng về bản thân, sở thích chơi cờ...">{{ user.bio or '' }}</textarea>
+                                    <small class="form-hint char-count"><span id="bioCharCount">{{ (user.bio or '')|length }}</span>/500 ký tự</small>
+                                </div>
+                                
+                                <div class="form-error" id="profileError"></div>
+                                <div class="form-success" id="profileSuccess"></div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Lưu thay đổi
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Đổi mật khẩu -->
+                    <div class="tab-content" id="tab-password">
+                        <div class="content-card">
+                            <h3><i class="fas fa-key"></i> Đổi mật khẩu</h3>
+                            <form id="passwordForm" onsubmit="changePassword(event)">
+                                <div class="form-group">
+                                    <label for="currentPassword">Mật khẩu hiện tại</label>
+                                    <input type="password" id="currentPassword" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newPassword">Mật khẩu mới</label>
+                                    <input type="password" id="newPassword" required placeholder="Ít nhất 6 ký tự">
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmNewPassword">Xác nhận mật khẩu mới</label>
+                                    <input type="password" id="confirmNewPassword" required>
+                                </div>
+                                <div class="form-error" id="passwordError"></div>
+                                <div class="form-success" id="passwordSuccess"></div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-key"></i> Đổi mật khẩu
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Lịch sử đấu -->
+                    <div class="tab-content" id="tab-history">
+                        <div class="content-card">
+                            <h3><i class="fas fa-history"></i> Lịch sử trận đấu</h3>
+                            
+                            <!-- Filter -->
+                            <div class="history-filter">
+                                <button class="filter-btn active" data-filter="all" onclick="filterHistory('all')">Tất cả</button>
+                                <button class="filter-btn" data-filter="pvp" onclick="filterHistory('pvp')">PvP</button>
+                                <button class="filter-btn" data-filter="pve" onclick="filterHistory('pve')">PvE</button>
+                            </div>
+                            
+                            <!-- History List -->
+                            <div class="history-list" id="historyList">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                                </div>
+                            </div>
+                            
+                            <!-- Load More -->
+                            <button class="btn btn-outline btn-block" id="loadMoreBtn" onclick="loadMoreHistory()" style="display: none;">
+                                <i class="fas fa-chevron-down"></i> Xem thêm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Game Detail Modal -->
+    <div class="modal" id="gameDetailModal">
+        <div class="modal-content modal-large">
+            <span class="close-btn" onclick="closeModal('gameDetailModal')">&times;</span>
+            <h2><i class="fas fa-chess"></i> Chi tiết trận đấu</h2>
+            <div id="gameDetailContent">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng Online</span>
+                </div>
+                <p>© 2025 Cờ Tướng Online. Dự án học tập về Trí tuệ nhân tạo.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Current user data
+        const currentUserId = {{ user.user_id }};
+        let historyPage = 0;
+        let currentFilter = 'all';
+        
+        // Toggle dropdown menu
+        function toggleUserDropdown() {
+            const menu = document.getElementById('userDropdownMenu');
+            menu.classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.querySelector('.user-dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                document.getElementById('userDropdownMenu').classList.remove('show');
+            }
+        });
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Load history if switching to history tab
+            if (tabName === 'history' && historyPage === 0) {
+                loadHistory();
+            }
+            
+            // Update URL hash
+            window.location.hash = tabName;
+        }
+        
+        // Check URL hash on load
+        window.addEventListener('load', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash && ['info', 'password', 'history'].includes(hash)) {
+                switchTab(hash);
+            }
+        });
+        
+        // Upload avatar
+        async function uploadAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+            
+            const file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Ảnh không được lớn hơn 2MB');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('avatar', file);
+            
+            try {
+                const response = await fetch('/api/profile/avatar', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('profileAvatar').src = data.avatar_url + '?t=' + Date.now();
+                    document.querySelectorAll('.user-avatar-small').forEach(img => {
+                        img.src = data.avatar_url + '?t=' + Date.now();
+                    });
+                    alert('Cập nhật avatar thành công!');
+                } else {
+                    alert(data.message || 'Lỗi cập nhật avatar');
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra');
+            }
+        }
+        
+        // Update profile
+        async function updateProfile(event) {
+            event.preventDefault();
+            const email = document.getElementById('editEmail').value.trim();
+            const displayName = document.getElementById('editDisplayName').value.trim();
+            const bio = document.getElementById('editBio').value.trim();
+            const birthday = document.getElementById('editBirthday').value;
+            const gender = document.getElementById('editGender').value;
+            const phone = document.getElementById('editPhone').value.trim();
+            const location = document.getElementById('editLocation').value.trim();
+            
+            const errorDiv = document.getElementById('profileError');
+            const successDiv = document.getElementById('profileSuccess');
+            
+            errorDiv.textContent = '';
+            successDiv.textContent = '';
+            
+            // Validation
+            if (!email) {
+                errorDiv.textContent = 'Email không được để trống';
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorDiv.textContent = 'Email không hợp lệ';
+                return;
+            }
+            
+            if (displayName && (displayName.length < 2 || displayName.length > 50)) {
+                errorDiv.textContent = 'Tên hiển thị phải từ 2-50 ký tự';
+                return;
+            }
+            
+            if (phone && !/^[0-9]{10,11}$/.test(phone)) {
+                errorDiv.textContent = 'Số điện thoại phải có 10-11 chữ số';
+                return;
+            }
+            
+            if (birthday) {
+                const birthDate = new Date(birthday);
+                const today = new Date();
+                const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+                if (age < 5 || age > 120) {
+                    errorDiv.textContent = 'Ngày sinh không hợp lệ';
+                    return;
+                }
+            }
+            
+            if (bio && bio.length > 500) {
+                errorDiv.textContent = 'Giới thiệu không được quá 500 ký tự';
+                return;
+            }
+            
+            if (location && location.length > 100) {
+                errorDiv.textContent = 'Địa chỉ không được quá 100 ký tự';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/profile/update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email,
+                        display_name: displayName,
+                        bio,
+                        birthday,
+                        gender,
+                        phone,
+                        location
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    successDiv.textContent = 'Cập nhật thành công!';
+                    setTimeout(() => successDiv.textContent = '', 3000);
+                } else {
+                    errorDiv.textContent = data.message || 'Lỗi cập nhật';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Có lỗi xảy ra';
+            }
+        }
+        
+        // Bio character counter
+        document.getElementById('editBio').addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('bioCharCount').textContent = count;
+            if (count > 500) {
+                this.value = this.value.substring(0, 500);
+                document.getElementById('bioCharCount').textContent = 500;
+            }
+        });
+        
+        // Change password
+        async function changePassword(event) {
+            event.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const errorDiv = document.getElementById('passwordError');
+            const successDiv = document.getElementById('passwordSuccess');
+            
+            errorDiv.textContent = '';
+            successDiv.textContent = '';
+            
+            if (newPassword !== confirmNewPassword) {
+                errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                errorDiv.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/profile/password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    successDiv.textContent = 'Đổi mật khẩu thành công!';
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    errorDiv.textContent = data.message || 'Lỗi đổi mật khẩu';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Có lỗi xảy ra';
+            }
+        }
+        
+        // Load match history
+        async function loadHistory(reset = true) {
+            if (reset) {
+                historyPage = 0;
+                document.getElementById('historyList').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+            }
+            
+            try {
+                const response = await fetch(`/api/profile/history?page=${historyPage}&filter=${currentFilter}`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    renderHistory(data.games, reset);
+                    document.getElementById('loadMoreBtn').style.display = data.hasMore ? 'block' : 'none';
+                }
+            } catch (error) {
+                document.getElementById('historyList').innerHTML = '<p class="error-message">Lỗi tải lịch sử</p>';
+            }
+        }
+        
+        function loadMoreHistory() {
+            historyPage++;
+            loadHistory(false);
+        }
+        
+        function filterHistory(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+            loadHistory(true);
+        }
+        
+        function renderHistory(games, reset) {
+            const container = document.getElementById('historyList');
+            
+            if (reset) {
+                container.innerHTML = '';
+            }
+            
+            if (games.length === 0 && reset) {
+                container.innerHTML = '<p class="no-data">Chưa có trận đấu nào</p>';
+                return;
+            }
+            
+            games.forEach(game => {
+                const isWinner = (game.winner === 'red' && game.red_player_id === currentUserId) ||
+                                 (game.winner === 'black' && game.black_player_id === currentUserId);
+                const isDraw = game.winner === 'draw' || game.winner === null;
+                const isLoser = !isWinner && !isDraw && game.status === 'finished';
+                
+                const resultClass = isWinner ? 'win' : (isLoser ? 'lose' : 'draw');
+                const resultText = isWinner ? 'Thắng' : (isLoser ? 'Thua' : (isDraw && game.status === 'finished' ? 'Hòa' : 'Chưa kết thúc'));
+                
+                const playerSide = game.red_player_id === currentUserId ? 'red' : 'black';
+                const opponentName = playerSide === 'red' ? 
+                    (game.black_player_name || game.black_player || 'AI') : 
+                    (game.red_player_name || game.red_player || 'AI');
+                
+                const gameDate = new Date(game.created_at).toLocaleDateString('vi-VN', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                
+                const html = `
+                    <div class="history-item ${resultClass}" onclick="showGameDetail(${game.game_id})">
+                        <div class="history-type">
+                            <span class="game-type-badge ${game.game_type}">${game.game_type.toUpperCase()}</span>
+                            ${game.ai_difficulty ? `<span class="difficulty-badge ${game.ai_difficulty}">${game.ai_difficulty}</span>` : ''}
+                        </div>
+                        <div class="history-info">
+                            <span class="opponent">
+                                <i class="fas fa-user"></i> vs ${opponentName}
+                            </span>
+                            <span class="date">
+                                <i class="fas fa-calendar"></i> ${gameDate}
+                            </span>
+                        </div>
+                        <div class="history-result ${resultClass}">
+                            ${resultText}
+                        </div>
+                        <div class="history-action">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+        
+        // Show game detail
+        async function showGameDetail(gameId) {
+            document.getElementById('gameDetailModal').style.display = 'flex';
+            document.getElementById('gameDetailContent').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+            
+            try {
+                const response = await fetch(`/api/game/${gameId}/detail`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    renderGameDetail(data.game, data.moves);
+                } else {
+                    document.getElementById('gameDetailContent').innerHTML = '<p class="error-message">Không thể tải chi tiết trận đấu</p>';
+                }
+            } catch (error) {
+                document.getElementById('gameDetailContent').innerHTML = '<p class="error-message">Có lỗi xảy ra</p>';
+            }
+        }
+        
+        function renderGameDetail(game, moves) {
+            const isWinner = (game.winner === 'red' && game.red_player_id === currentUserId) ||
+                             (game.winner === 'black' && game.black_player_id === currentUserId);
+            const resultText = isWinner ? 'Chiến thắng' : (game.winner === 'draw' ? 'Hòa' : 'Thua cuộc');
+            const resultClass = isWinner ? 'win' : (game.winner === 'draw' ? 'draw' : 'lose');
+            
+            const endReasonMap = {
+                'checkmate': 'Chiếu bí',
+                'timeout': 'Hết giờ',
+                'resign': 'Đầu hàng',
+                'draw_agreement': 'Đồng ý hòa'
+            };
+            
+            const gameDate = new Date(game.created_at).toLocaleDateString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            let duration = 'N/A';
+            if (game.started_at && game.ended_at) {
+                const start = new Date(game.started_at);
+                const end = new Date(game.ended_at);
+                const diff = Math.floor((end - start) / 1000);
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                duration = `${mins} phút ${secs} giây`;
+            }
+            
+            let html = `
+                <div class="game-detail">
+                    <div class="detail-header ${resultClass}">
+                        <span class="result-badge">${resultText}</span>
+                        ${game.end_reason ? `<span class="reason">${endReasonMap[game.end_reason] || game.end_reason}</span>` : ''}
+                    </div>
+                    
+                    <div class="detail-players">
+                        <div class="player red ${game.winner === 'red' ? 'winner' : ''}">
+                            <span class="color-indicator red"></span>
+                            <span class="name">${game.red_player_name || game.red_player || 'Player 1'}</span>
+                            ${game.winner === 'red' ? '<i class="fas fa-crown"></i>' : ''}
+                        </div>
+                        <span class="vs">VS</span>
+                        <div class="player black ${game.winner === 'black' ? 'winner' : ''}">
+                            <span class="name">${game.black_player_name || game.black_player || 'Player 2'}</span>
+                            <span class="color-indicator black"></span>
+                            ${game.winner === 'black' ? '<i class="fas fa-crown"></i>' : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="detail-info">
+                        <div class="info-item">
+                            <i class="fas fa-gamepad"></i>
+                            <span>Chế độ: <strong>${game.game_type === 'pve' ? 'Chơi với AI' : 'Chơi với người'}</strong></span>
+                        </div>
+                        ${game.ai_difficulty ? `
+                        <div class="info-item">
+                            <i class="fas fa-brain"></i>
+                            <span>Độ khó: <strong>${game.ai_difficulty}</strong></span>
+                        </div>
+                        ` : ''}
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>Thời gian: <strong>${gameDate}</strong></span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Thời lượng: <strong>${duration}</strong></span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-chess-pawn"></i>
+                            <span>Số nước đi: <strong>${moves.length}</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-moves">
+                        <h4><i class="fas fa-list-ol"></i> Lịch sử nước đi</h4>
+                        <div class="moves-scroll">
+                            ${moves.length > 0 ? moves.map((move, i) => `
+                                <div class="move-item ${move.player}">
+                                    <span class="move-num">${Math.ceil((i + 1) / 2)}${move.player === 'red' ? '.' : '...'}</span>
+                                    <span class="move-text">${move.piece_type} (${move.from_row},${move.from_col}) → (${move.to_row},${move.to_col})</span>
+                                    ${move.captured_piece ? '<span class="capture">✕</span>' : ''}
+                                    ${move.is_check ? '<span class="check">+</span>' : ''}
+                                </div>
+                            `).join('') : '<p class="no-moves">Không có nước đi nào được ghi lại</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('gameDetailContent').innerHTML = html;
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+        
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

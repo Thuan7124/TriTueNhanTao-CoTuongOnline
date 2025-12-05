@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng xếp hạng PvE - Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* PvE Leaderboard Tabs */
+        .leaderboard-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .leaderboard-tab {
+            padding: 12px 30px;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .leaderboard-tab:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+        
+        .leaderboard-tab.active {
+            background: var(--primary);
+            color: var(--dark);
+        }
+        
+        .leaderboard-tab i {
+            margin-right: 8px;
+        }
+        
+        .tab-easy { border-color: #4CAF50; color: #4CAF50; }
+        .tab-easy:hover { background: rgba(76, 175, 80, 0.1); }
+        .tab-easy.active { background: #4CAF50; color: white; }
+        
+        .tab-medium { border-color: #FF9800; color: #FF9800; }
+        .tab-medium:hover { background: rgba(255, 152, 0, 0.1); }
+        .tab-medium.active { background: #FF9800; color: white; }
+        
+        .tab-hard { border-color: #f44336; color: #f44336; }
+        .tab-hard:hover { background: rgba(244, 67, 54, 0.1); }
+        .tab-hard.active { background: #f44336; color: white; }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* PvE specific table styling */
+        .pve-score {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .pve-moves {
+            color: #aaa;
+        }
+        
+        .pve-time {
+            color: #888;
+        }
+        
+        .pve-stats {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .pve-stats .captured {
+            color: #4CAF50;
+        }
+        
+        .pve-stats .lost {
+            color: #f44336;
+        }
+        
+        /* Navigation tabs */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-tab-link {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ddd;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .nav-tab-link.active {
+            background: var(--primary);
+            color: var(--dark);
+        }
+        
+        .difficulty-icon {
+            margin-right: 5px;
+        }
+        
+        /* Empty state */
+        .empty-leaderboard {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        
+        .empty-leaderboard i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>Cờ Tướng Online</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Trang chủ</a>
+                <a href="/lobby" class="nav-link">Chơi ngay</a>
+                <a href="/leaderboard" class="nav-link">Xếp hạng PvP</a>
+                <a href="/pve-leaderboard" class="nav-link active">Xếp hạng PvE</a>
+            </nav>
+            <div class="auth-buttons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="elo"><i class="fas fa-trophy"></i> {{ user.elo_rating or 1200 }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <button class="btn btn-outline" onclick="window.location.href='/'">Đăng nhập</button>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="leaderboard-main">
+        <div class="container">
+            <h1 class="page-title"><i class="fas fa-robot"></i> Bảng xếp hạng PvE</h1>
+            <p style="text-align: center; color: #aaa; margin-bottom: 20px;">Xếp hạng dựa trên Game Score - Điểm cao & ít nước đi hơn sẽ thắng</p>
+            
+            <!-- Difficulty Tabs -->
+            <div class="leaderboard-tabs">
+                <button class="leaderboard-tab tab-easy active" onclick="showTab('easy')">
+                    <i class="fas fa-smile difficulty-icon"></i> Dễ
+                </button>
+                <button class="leaderboard-tab tab-medium" onclick="showTab('medium')">
+                    <i class="fas fa-meh difficulty-icon"></i> Trung bình
+                </button>
+                <button class="leaderboard-tab tab-hard" onclick="showTab('hard')">
+                    <i class="fas fa-skull difficulty-icon"></i> Khó
+                </button>
+            </div>
+            
+            <!-- Easy Leaderboard -->
+            <div id="tab-easy" class="tab-content active">
+                <div class="leaderboard-container">
+                    <div class="leaderboard-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Hạng</th>
+                                    <th>Người chơi</th>
+                                    <th>Game Score</th>
+                                    <th>Số nước</th>
+                                    <th>Thời gian</th>
+                                    <th>Quân ăn/mất</th>
+                                    <th>Ngày đạt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="easy-tbody">
+                                <tr>
+                                    <td colspan="7" class="no-data">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Medium Leaderboard -->
+            <div id="tab-medium" class="tab-content">
+                <div class="leaderboard-container">
+                    <div class="leaderboard-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Hạng</th>
+                                    <th>Người chơi</th>
+                                    <th>Game Score</th>
+                                    <th>Số nước</th>
+                                    <th>Thời gian</th>
+                                    <th>Quân ăn/mất</th>
+                                    <th>Ngày đạt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="medium-tbody">
+                                <tr>
+                                    <td colspan="7" class="no-data">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hard Leaderboard -->
+            <div id="tab-hard" class="tab-content">
+                <div class="leaderboard-container">
+                    <div class="leaderboard-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Hạng</th>
+                                    <th>Người chơi</th>
+                                    <th>Game Score</th>
+                                    <th>Số nước</th>
+                                    <th>Thời gian</th>
+                                    <th>Quân ăn/mất</th>
+                                    <th>Ngày đạt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hard-tbody">
+                                <tr>
+                                    <td colspan="7" class="no-data">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User's personal bests -->
+            {% if user %}
+            <div class="personal-bests" style="margin-top: 40px;">
+                <h2 style="text-align: center; color: var(--primary); margin-bottom: 20px;">
+                    <i class="fas fa-user"></i> Điểm cao nhất của bạn
+                </h2>
+                <div id="user-bests" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng Online</span>
+                </div>
+                <p>© 2025 Cờ Tướng Online. Dự án học tập về Trí tuệ nhân tạo.</p>
+                <p>Nhóm 6</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching
+        function showTab(difficulty) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.leaderboard-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${difficulty}`).classList.add('active');
+            document.querySelector(`.tab-${difficulty}`).classList.add('active');
+        }
+        
+        // Format time (seconds to mm:ss)
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN');
+        }
+        
+        // Render leaderboard table
+        function renderLeaderboard(difficulty, data) {
+            const tbody = document.getElementById(`${difficulty}-tbody`);
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="no-data">
+                            <div class="empty-leaderboard">
+                                <i class="fas fa-trophy"></i>
+                                <p>Chưa có điểm cao nào</p>
+                                <p>Hãy là người đầu tiên chinh phục!</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = data.map((player, index) => `
+                <tr>
+                    <td class="rank">
+                        ${index === 0 ? '<span class="rank-badge gold"><i class="fas fa-medal"></i></span>' :
+                          index === 1 ? '<span class="rank-badge silver"><i class="fas fa-medal"></i></span>' :
+                          index === 2 ? '<span class="rank-badge bronze"><i class="fas fa-medal"></i></span>' :
+                          player.rank || (index + 1)}
+                    </td>
+                    <td class="player">
+                        <i class="fas fa-user-circle"></i>
+                        ${player.username}
+                    </td>
+                    <td class="pve-score">${player.game_score.toFixed(1)}</td>
+                    <td class="pve-moves">${player.moves_count} nước</td>
+                    <td class="pve-time">${formatTime(player.elapsed_time)}</td>
+                    <td class="pve-stats">
+                        <span class="captured">+${player.pieces_captured}</span>
+                        <span class="lost">-${player.pieces_lost}</span>
+                    </td>
+                    <td>${formatDate(player.created_at)}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Load leaderboard data
+        async function loadLeaderboard(difficulty) {
+            try {
+                const response = await fetch(`/api/pve-leaderboard/${difficulty}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderLeaderboard(difficulty, data.leaderboard);
+                } else {
+                    console.error('Error loading leaderboard:', data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load user's personal bests
+        async function loadUserBests() {
+            try {
+                const response = await fetch('/api/pve-leaderboard/user-bests');
+                const data = await response.json();
+                
+                if (data.success && data.bests) {
+                    const container = document.getElementById('user-bests');
+                    if (!container) return;
+                    
+                    const difficulties = {
+                        easy: { name: 'Dễ', color: '#4CAF50', icon: 'smile' },
+                        medium: { name: 'Trung bình', color: '#FF9800', icon: 'meh' },
+                        hard: { name: 'Khó', color: '#f44336', icon: 'skull' }
+                    };
+                    
+                    container.innerHTML = Object.entries(difficulties).map(([key, info]) => {
+                        const best = data.bests[key];
+                        return `
+                            <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; border: 2px solid ${info.color}; min-width: 200px; text-align: center;">
+                                <h3 style="color: ${info.color}; margin-bottom: 10px;">
+                                    <i class="fas fa-${info.icon}"></i> ${info.name}
+                                </h3>
+                                ${best ? `
+                                    <p style="font-size: 24px; color: var(--primary); font-weight: bold;">${best.game_score.toFixed(1)}</p>
+                                    <p style="color: #aaa; font-size: 14px;">${best.moves_count} nước • ${formatTime(best.elapsed_time)}</p>
+                                ` : `
+                                    <p style="color: #666;">Chưa có điểm</p>
+                                `}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading user bests:', error);
+            }
+        }
+        
+        // Toggle user dropdown menu
+        function toggleUserDropdown() {
+            const menu = document.getElementById('userDropdownMenu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.user-dropdown');
+            const menu = document.getElementById('userDropdownMenu');
+            if (dropdown && menu && !dropdown.contains(event.target)) {
+                menu.classList.remove('show');
+            }
+        });
+        
+        // Logout function
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.reload();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load all leaderboards
+            loadLeaderboard('easy');
+            loadLeaderboard('medium');
+            loadLeaderboard('hard');
+            
+            // Load user's bests if logged in
+            loadUserBests();
+        });
+    </script>
+</body>
+</html>

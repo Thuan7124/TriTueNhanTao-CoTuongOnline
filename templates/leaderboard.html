@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng xếp hạng - Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>Cờ Tướng Online</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Trang chủ</a>
+                <a href="/lobby" class="nav-link">Chơi ngay</a>
+                <a href="/leaderboard" class="nav-link active">Xếp hạng PvP</a>
+                <a href="/pve-leaderboard" class="nav-link">Xếp hạng PvE</a>
+            </nav>
+            <div class="auth-buttons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="elo"><i class="fas fa-trophy"></i> {{ user.elo_rating or 1200 }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <button class="btn btn-outline" onclick="window.location.href='/'">Đăng nhập</button>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="leaderboard-main">
+        <div class="container">
+            <h1 class="page-title"><i class="fas fa-trophy"></i> Bảng xếp hạng</h1>
+            
+            <div class="leaderboard-container">
+                <!-- Top 3 Podium -->
+                <div class="podium">
+                    {% if players and players|length >= 3 %}
+                    <!-- 2nd Place -->
+                    <div class="podium-place second">
+                        <div class="podium-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="podium-info">
+                            <span class="place-number">2</span>
+                            <span class="player-name">{{ players[1].username }}</span>
+                            <span class="player-elo"><i class="fas fa-star"></i> {{ players[1].elo_rating }}</span>
+                            <span class="player-winrate">
+                                {% if players[1].pvp_games_played and players[1].pvp_games_played > 0 %}
+                                {{ ((players[1].games_won / players[1].pvp_games_played) * 100)|round(1) }}% thắng
+                                {% else %}
+                                0% thắng
+                                {% endif %}
+                            </span>
+                            <span class="player-games">{{ players[1].pvp_games_played or 0 }} trận PvP</span>
+                        </div>
+                        <div class="podium-bar"></div>
+                    </div>
+                    
+                    <!-- 1st Place -->
+                    <div class="podium-place first">
+                        <div class="podium-crown">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="podium-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="podium-info">
+                            <span class="place-number">1</span>
+                            <span class="player-name">{{ players[0].username }}</span>
+                            <span class="player-elo"><i class="fas fa-star"></i> {{ players[0].elo_rating }}</span>
+                            <span class="player-winrate">
+                                {% if players[0].pvp_games_played and players[0].pvp_games_played > 0 %}
+                                {{ ((players[0].games_won / players[0].pvp_games_played) * 100)|round(1) }}% thắng
+                                {% else %}
+                                0% thắng
+                                {% endif %}
+                            </span>
+                            <span class="player-games">{{ players[0].pvp_games_played or 0 }} trận PvP</span>
+                        </div>
+                        <div class="podium-bar"></div>
+                    </div>
+                    
+                    <!-- 3rd Place -->
+                    <div class="podium-place third">
+                        <div class="podium-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="podium-info">
+                            <span class="place-number">3</span>
+                            <span class="player-name">{{ players[2].username }}</span>
+                            <span class="player-elo"><i class="fas fa-star"></i> {{ players[2].elo_rating }}</span>
+                            <span class="player-winrate">
+                                {% if players[2].pvp_games_played and players[2].pvp_games_played > 0 %}
+                                {{ ((players[2].games_won / players[2].pvp_games_played) * 100)|round(1) }}% thắng
+                                {% else %}
+                                0% thắng
+                                {% endif %}
+                            </span>
+                            <span class="player-games">{{ players[2].pvp_games_played or 0 }} trận PvP</span>
+                        </div>
+                        <div class="podium-bar"></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Full Leaderboard Table -->
+                <div class="leaderboard-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hạng</th>
+                                <th>Người chơi</th>
+                                <th>Điểm</th>
+                                <th>Chuỗi thắng</th>
+                                <th>Ván PvP</th>
+                                <th>Thắng</th>
+                                <th>Thua</th>
+                                <th>Hòa</th>
+                                <th>Tỷ lệ thắng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if players %}
+                            {% for player in players %}
+                            <tr class="{% if user and player.user_id == user.user_id %}highlight{% endif %}">
+                                <td class="rank">
+                                    {% if loop.index == 1 %}
+                                    <span class="rank-badge gold"><i class="fas fa-medal"></i></span>
+                                    {% elif loop.index == 2 %}
+                                    <span class="rank-badge silver"><i class="fas fa-medal"></i></span>
+                                    {% elif loop.index == 3 %}
+                                    <span class="rank-badge bronze"><i class="fas fa-medal"></i></span>
+                                    {% else %}
+                                    {{ loop.index }}
+                                    {% endif %}
+                                </td>
+                                <td class="player">
+                                    <i class="fas fa-user-circle"></i>
+                                    {{ player.username }}
+                                </td>
+                                <td class="elo">{{ player.elo_rating }}</td>
+                                <td class="streak">
+                                    {% if player.win_streak and player.win_streak > 0 %}
+                                    <span class="streak-badge">🔥 x{{ player.win_streak }}</span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>{{ player.pvp_games_played or 0 }}</td>
+                                <td class="win">{{ player.games_won }}</td>
+                                <td class="loss">{{ player.games_lost }}</td>
+                                <td>{{ player.games_drawn }}</td>
+                                <td class="winrate">
+                                    {% if player.pvp_games_played and player.pvp_games_played > 0 %}
+                                    {{ ((player.games_won / player.pvp_games_played) * 100)|round(1) }}%
+                                    {% else %}
+                                    0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="no-data">Chưa có dữ liệu xếp hạng</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng Online</span>
+                </div>
+                <p>© 2025 Cờ Tướng Online. Dự án học tập về Trí tuệ nhân tạo.</p>
+                <p>Nhóm 6</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle user dropdown menu
+        function toggleUserDropdown() {
+            const menu = document.getElementById('userDropdownMenu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.user-dropdown');
+            const menu = document.getElementById('userDropdownMenu');
+            if (dropdown && menu && !dropdown.contains(event.target)) {
+                menu.classList.remove('show');
+            }
+        });
+        
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

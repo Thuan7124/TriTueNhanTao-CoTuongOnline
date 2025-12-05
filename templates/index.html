@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Tướng Online - Chinese Chess</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>Cờ Tướng Online</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link active">Trang chủ</a>
+                <a href="/lobby" class="nav-link">Chơi ngay</a>
+                <a href="/leaderboard" class="nav-link">Xếp hạng</a>
+            </nav>
+            <div class="auth-buttons" id="authButtons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="elo"><i class="fas fa-trophy"></i> {{ user.elo_rating or 1200 }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <button class="btn btn-outline" onclick="showLoginModal()">Đăng nhập</button>
+                <button class="btn btn-primary" onclick="showRegisterModal()">Đăng ký</button>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Chơi Cờ Tướng Online</h1>
+                <p>Trải nghiệm game cờ tướng cổ điển với AI thông minh hoặc thách đấu bạn bè</p>
+                <div class="hero-buttons">
+                    <a href="/lobby" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play"></i> Chơi ngay
+                    </a>
+                    <button class="btn btn-outline btn-lg" onclick="showRulesModal()">
+                        <i class="fas fa-book"></i> Luật chơi
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Tính năng nổi bật</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>Chơi với AI</h3>
+                    <p>3 mức độ: Dễ, Trung bình, Khó. AI sử dụng thuật toán Minimax với Alpha-Beta Pruning</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Chơi với bạn bè</h3>
+                    <p>Tạo phòng và chia sẻ mã phòng để chơi cùng bạn bè từ bất kỳ đâu</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Hệ thống xếp hạng</h3>
+                    <p>Điểm xếp hạng giúp bạn theo dõi tiến độ và thách đấu người chơi cùng trình độ</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Đa nền tảng</h3>
+                    <p>Chơi trên máy tính, tablet hoặc điện thoại với giao diện responsive</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Info Section -->
+    <section class="ai-info">
+        <div class="container">
+            <h2 class="section-title">Về thuật toán AI</h2>
+            <div class="ai-content">
+                <div class="ai-description">
+                    <h3><i class="fas fa-brain"></i> Minimax với Alpha-Beta Pruning</h3>
+                    <p>AI của chúng tôi sử dụng thuật toán <strong>Minimax</strong> - một thuật toán tìm kiếm trong cây game (game tree) để tìm nước đi tối ưu.</p>
+                    <ul>
+                        <li><strong>Minimax:</strong> Giả định cả hai người chơi đều chơi tối ưu</li>
+                        <li><strong>Alpha-Beta Pruning:</strong> Cải tiến cắt tỉa các nhánh không cần thiết, tăng hiệu suất</li>
+                        <li><strong>Heuristic Evaluation:</strong> Đánh giá vị trí dựa trên giá trị quân cờ và vị trí trên bàn</li>
+                    </ul>
+                </div>
+                <div class="difficulty-levels">
+                    <h4>Các mức độ khó:</h4>
+                    <div class="level">
+                        <span class="level-badge easy">Dễ</span>
+                        <span>Độ sâu 2 - Nhìn trước 2 nước</span>
+                    </div>
+                    <div class="level">
+                        <span class="level-badge medium">Trung bình</span>
+                        <span>Độ sâu 3 - Nhìn trước 3 nước</span>
+                    </div>
+                    <div class="level">
+                        <span class="level-badge hard">Khó</span>
+                        <span>Độ sâu 4 - Nhìn trước 4 nước</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng Online</span>
+                </div>
+                <p>© 2025 Cờ Tướng Online. Dự án học tập về Trí tuệ nhân tạo.</p>
+                <p>Nhóm 6</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">&times;</span>
+            <h2><i class="fas fa-sign-in-alt"></i> Đăng nhập</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginUsername">Tên đăng nhập hoặc Email</label>
+                    <input type="text" id="loginUsername" required placeholder="Nhập username hoặc email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <input type="password" id="loginPassword" required placeholder="Nhập mật khẩu">
+                </div>
+                <div class="form-error" id="loginError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+            </form>
+            <p class="form-footer">
+                Chưa có tài khoản? <a href="#" onclick="showRegisterModal()">Đăng ký ngay</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('registerModal')">&times;</span>
+            <h2><i class="fas fa-user-plus"></i> Đăng ký</h2>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regUsername">Tên đăng nhập</label>
+                    <input type="text" id="regUsername" required placeholder="3-20 ký tự, chữ và số">
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" required placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Mật khẩu</label>
+                    <input type="password" id="regPassword" required placeholder="Ít nhất 6 ký tự">
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">Xác nhận mật khẩu</label>
+                    <input type="password" id="regConfirmPassword" required placeholder="Nhập lại mật khẩu">
+                </div>
+                <div class="form-error" id="registerError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+            </form>
+            <p class="form-footer">
+                Đã có tài khoản? <a href="#" onclick="showLoginModal()">Đăng nhập</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content modal-large">
+            <span class="close-btn" onclick="closeModal('rulesModal')">&times;</span>
+            <h2><i class="fas fa-book"></i> Luật chơi Cờ Tướng</h2>
+            <div class="rules-content">
+                <h3>Bàn cờ và Quân cờ</h3>
+                <p>Bàn cờ gồm 10 hàng x 9 cột với sông chia đôi. Mỗi bên có 16 quân:</p>
+                <ul>
+                    <li><strong>Tướng (1):</strong> Di chuyển 1 ô theo chiều ngang/dọc trong cung</li>
+                    <li><strong>Sĩ (2):</strong> Di chuyển 1 ô theo đường chéo trong cung</li>
+                    <li><strong>Tượng (2):</strong> Di chuyển chéo 2 ô (hình chữ điền), không qua sông</li>
+                    <li><strong>Xe (2):</strong> Di chuyển thẳng không giới hạn ô</li>
+                    <li><strong>Mã (2):</strong> Di chuyển hình chữ L (2+1 ô)</li>
+                    <li><strong>Pháo (2):</strong> Di chuyển thẳng, ăn quân phải nhảy qua 1 quân</li>
+                    <li><strong>Tốt (5):</strong> Tiến 1 ô, qua sông được đi ngang</li>
+                </ul>
+                <h3>Mục tiêu</h3>
+                <p>Chiếu hết Tướng đối phương hoặc khiến đối phương không còn nước đi hợp lệ.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Modal functions
+        function showLoginModal() {
+            closeModal('registerModal');
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+        
+        function showRegisterModal() {
+            closeModal('loginModal');
+            document.getElementById('registerModal').style.display = 'flex';
+        }
+        
+        function showRulesModal() {
+            document.getElementById('rulesModal').style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+        
+        // Auth functions
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    window.location.reload();
+                } else {
+                    errorDiv.textContent = data.message || 'Đăng nhập thất bại';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Có lỗi xảy ra, vui lòng thử lại';
+            }
+        }
+        
+        async function handleRegister(event) {
+            event.preventDefault();
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const errorDiv = document.getElementById('registerError');
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, email, password, confirm_password: confirmPassword})
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    showLoginModal();
+                } else {
+                    errorDiv.textContent = data.message || 'Đăng ký thất bại';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Có lỗi xảy ra, vui lòng thử lại';
+            }
+        }
+        
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phòng chờ - Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .waiting-room-main {
+            min-height: calc(100vh - 80px);
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .waiting-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .room-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .room-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .room-header h1 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .room-code-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .room-code-box span {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            letter-spacing: 5px;
+        }
+
+        .room-code-box button {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .room-hint {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .players-section {
+            margin: 30px 0;
+        }
+
+        .players-section h3 {
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-slot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .player-slot.red {
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        .player-slot.black {
+            border-color: rgba(33, 37, 41, 0.5);
+        }
+
+        .player-slot.filled {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .player-slot.ready {
+            border-color: #28a745;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .player-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .player-color.red {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: #fff;
+        }
+
+        .player-color.black {
+            background: linear-gradient(135deg, #343a40, #212529);
+            color: #fff;
+        }
+
+        .player-details h4 {
+            color: #fff;
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .player-details span {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .player-status {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-waiting {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-ready {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status-empty {
+            background: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+        }
+
+        .status-host {
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff;
+        }
+
+        .actions-section {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn-ready {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            padding: 15px 30px;
+            font-size: 18px;
+        }
+
+        .btn-ready:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-ready.active {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            color: #000;
+            padding: 18px 35px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .btn-start:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-leave {
+            background: transparent;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .btn-leave:hover {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+        .waiting-animation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: #aaa;
+        }
+
+        .waiting-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .waiting-dots span {
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .waiting-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .waiting-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .waiting-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .chat-mini {
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+        }
+
+        .chat-mini h4 {
+            color: #fff;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .chat-mini-messages {
+            height: 100px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .chat-mini-messages p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #ddd;
+        }
+
+        .chat-mini-messages p strong {
+            color: #ffd700;
+        }
+
+        .chat-mini-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-mini-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .chat-mini-input button {
+            padding: 10px 20px;
+        }
+
+        /* Countdown */
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .countdown-overlay.show {
+            display: flex;
+        }
+
+        .countdown-number {
+            font-size: 150px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+            animation: countPulse 1s ease-in-out;
+        }
+
+        @keyframes countPulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>Cờ Tướng Online</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Trang chủ</a>
+                <a href="/lobby" class="nav-link">Chơi ngay</a>
+            </nav>
+            <div class="auth-buttons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="waiting-room-main">
+        <div class="waiting-container">
+            <div class="room-card">
+                <div class="room-header">
+                    <h1><i class="fas fa-door-open"></i> Phòng chờ</h1>
+                    <div class="room-code-box">
+                        <span id="roomCode">{{ room_code }}</span>
+                        <button class="btn btn-outline" onclick="copyRoomCode()">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <p class="room-hint">Chia sẻ mã phòng cho bạn bè để chơi cùng</p>
+                </div>
+
+                <div class="players-section">
+                    <h3><i class="fas fa-users"></i> Người chơi</h3>
+                    
+                    <!-- Red Player -->
+                    <div class="player-slot red" id="redPlayerSlot">
+                        <div class="player-info">
+                            <div class="player-color red">
+                                <i class="fas fa-chess-king"></i>
+                            </div>
+                            <div class="player-details">
+                                <h4 id="redPlayerName">Đang chờ...</h4>
+                                <span>Quân Đỏ (Đi trước)</span>
+                            </div>
+                        </div>
+                        <span class="player-status status-empty" id="redPlayerStatus">Trống</span>
+                    </div>
+
+                    <!-- Black Player -->
+                    <div class="player-slot black" id="blackPlayerSlot">
+                        <div class="player-info">
+                            <div class="player-color black">
+                                <i class="fas fa-chess-king"></i>
+                            </div>
+                            <div class="player-details">
+                                <h4 id="blackPlayerName">Đang chờ...</h4>
+                                <span>Quân Đen</span>
+                            </div>
+                        </div>
+                        <span class="player-status status-empty" id="blackPlayerStatus">Trống</span>
+                    </div>
+                </div>
+
+                <div class="waiting-animation" id="waitingAnimation">
+                    <span>Đang chờ người chơi khác</span>
+                    <div class="waiting-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+
+                <div class="actions-section">
+                    <!-- Nút sẵn sàng (cho người không phải host) -->
+                    <button class="btn btn-ready" id="btnReady" style="display: none;" onclick="toggleReady()">
+                        <i class="fas fa-check-circle"></i> Sẵn sàng
+                    </button>
+
+                    <!-- Nút bắt đầu (chỉ host mới thấy) -->
+                    <button class="btn btn-start" id="btnStart" style="display: none;" onclick="startGame()" disabled>
+                        <i class="fas fa-play"></i> Bắt đầu trận đấu
+                    </button>
+
+                    <button class="btn btn-leave" onclick="leaveRoom()">
+                        <i class="fas fa-sign-out-alt"></i> Rời phòng
+                    </button>
+                </div>
+
+                <!-- Mini chat -->
+                <div class="chat-mini">
+                    <h4><i class="fas fa-comments"></i> Chat</h4>
+                    <div class="chat-mini-messages" id="chatMessages">
+                        <p><em>Chào mừng đến phòng chờ!</em></p>
+                    </div>
+                    <div class="chat-mini-input">
+                        <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." maxlength="100">
+                        <button class="btn btn-primary" onclick="sendChat()">Gửi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Countdown Overlay -->
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // Config
+        const ROOM_CODE = '{{ room_code }}';
+        const USER_ID = {{ user.user_id if user else 'null' }};
+        const USERNAME = '{{ user.username if user else "Guest" }}';
+        
+        // State
+        let socket;
+        let isHost = false;
+        let isReady = false;
+        let myColor = null;
+        let players = {
+            red: { name: null, ready: false, isHost: false },
+            black: { name: null, ready: false, isHost: false }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+        });
+
+        function initSocket() {
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                // Join waiting room
+                socket.emit('join_waiting_room', {
+                    room_code: ROOM_CODE,
+                    user_id: USER_ID,
+                    username: USERNAME
+                });
+            });
+
+            // Nhận thông tin phòng
+            socket.on('room_info', (data) => {
+                console.log('Room info:', data);
+                isHost = data.is_host;
+                myColor = data.my_color;
+                
+                // Cập nhật players từ server (có thể null)
+                if (data.players) {
+                    if (data.players.red) {
+                        players.red = {
+                            name: data.players.red.name,
+                            ready: data.players.red.ready,
+                            isHost: data.players.red.isHost
+                        };
+                    } else {
+                        players.red = { name: null, ready: false, isHost: false };
+                    }
+                    if (data.players.black) {
+                        players.black = {
+                            name: data.players.black.name,
+                            ready: data.players.black.ready,
+                            isHost: data.players.black.isHost
+                        };
+                    } else {
+                        players.black = { name: null, ready: false, isHost: false };
+                    }
+                }
+                
+                updateUI();
+            });
+
+            // Người chơi mới vào
+            socket.on('player_joined_waiting', (data) => {
+                console.log('Player joined:', data);
+                if (!players[data.color]) {
+                    players[data.color] = { name: null, ready: false, isHost: false };
+                }
+                players[data.color].name = data.username;
+                players[data.color].ready = false;
+                players[data.color].isHost = data.is_host || false;
+                updateUI();
+                addChatMessage('Hệ thống', `${data.username} đã vào phòng`);
+            });
+
+            // Người chơi sẵn sàng
+            socket.on('player_ready', (data) => {
+                console.log('Player ready:', data);
+                if (players[data.color]) {
+                    players[data.color].ready = data.ready;
+                }
+                updateUI();
+                
+                const statusText = data.ready ? 'đã sẵn sàng' : 'hủy sẵn sàng';
+                addChatMessage('Hệ thống', `${data.username} ${statusText}`);
+            });
+
+            // Người chơi rời phòng
+            socket.on('player_left_waiting', (data) => {
+                console.log('Player left:', data);
+                if (data.color && players[data.color]) {
+                    players[data.color] = { name: null, ready: false, isHost: false };
+                }
+                updateUI();
+                addChatMessage('Hệ thống', `${data.username} đã rời phòng`);
+            });
+
+            // Game bắt đầu
+            socket.on('game_starting', (data) => {
+                console.log('Game starting!');
+                showCountdown();
+            });
+
+            // Chat
+            socket.on('waiting_room_chat', (data) => {
+                addChatMessage(data.username, data.message);
+            });
+
+            // Error
+            socket.on('waiting_error', (data) => {
+                alert(data.message);
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            });
+        }
+
+        function updateUI() {
+            // Update Red Player
+            const redSlot = document.getElementById('redPlayerSlot');
+            const redName = document.getElementById('redPlayerName');
+            const redStatus = document.getElementById('redPlayerStatus');
+            
+            if (players.red && players.red.name) {
+                redSlot.classList.add('filled');
+                redName.textContent = players.red.name;
+                
+                if (players.red.isHost) {
+                    redStatus.textContent = 'Chủ phòng';
+                    redStatus.className = 'player-status status-host';
+                } else if (players.red.ready) {
+                    redSlot.classList.add('ready');
+                    redStatus.textContent = 'Sẵn sàng';
+                    redStatus.className = 'player-status status-ready';
+                } else {
+                    redSlot.classList.remove('ready');
+                    redStatus.textContent = 'Chờ sẵn sàng';
+                    redStatus.className = 'player-status status-waiting';
+                }
+            } else {
+                redSlot.classList.remove('filled', 'ready');
+                redName.textContent = 'Đang chờ...';
+                redStatus.textContent = 'Trống';
+                redStatus.className = 'player-status status-empty';
+            }
+
+            // Update Black Player
+            const blackSlot = document.getElementById('blackPlayerSlot');
+            const blackName = document.getElementById('blackPlayerName');
+            const blackStatus = document.getElementById('blackPlayerStatus');
+            
+            if (players.black && players.black.name) {
+                blackSlot.classList.add('filled');
+                blackName.textContent = players.black.name;
+                
+                if (players.black.isHost) {
+                    blackStatus.textContent = 'Chủ phòng';
+                    blackStatus.className = 'player-status status-host';
+                } else if (players.black.ready) {
+                    blackSlot.classList.add('ready');
+                    blackStatus.textContent = 'Sẵn sàng';
+                    blackStatus.className = 'player-status status-ready';
+                } else {
+                    blackSlot.classList.remove('ready');
+                    blackStatus.textContent = 'Chờ sẵn sàng';
+                    blackStatus.className = 'player-status status-waiting';
+                }
+            } else {
+                blackSlot.classList.remove('filled', 'ready');
+                blackName.textContent = 'Đang chờ...';
+                blackStatus.textContent = 'Trống';
+                blackStatus.className = 'player-status status-empty';
+            }
+
+            // Update buttons
+            const btnReady = document.getElementById('btnReady');
+            const btnStart = document.getElementById('btnStart');
+            const waitingAnim = document.getElementById('waitingAnimation');
+
+            if (isHost) {
+                // Host thấy nút bắt đầu
+                btnReady.style.display = 'none';
+                btnStart.style.display = 'block';
+                
+                // Kiểm tra xem người kia đã sẵn sàng chưa
+                const otherColor = myColor === 'red' ? 'black' : 'red';
+                const otherPlayer = players[otherColor];
+                const otherReady = otherPlayer && otherPlayer.name && otherPlayer.ready;
+                
+                btnStart.disabled = !otherReady;
+                
+                if (otherPlayer && otherPlayer.name) {
+                    waitingAnim.style.display = 'none';
+                } else {
+                    waitingAnim.style.display = 'flex';
+                }
+            } else {
+                // Người chơi khác thấy nút sẵn sàng
+                btnReady.style.display = 'block';
+                btnStart.style.display = 'none';
+                waitingAnim.style.display = 'none';
+                
+                // Update nút sẵn sàng
+                if (isReady) {
+                    btnReady.innerHTML = '<i class="fas fa-times-circle"></i> Hủy sẵn sàng';
+                    btnReady.classList.add('active');
+                } else {
+                    btnReady.innerHTML = '<i class="fas fa-check-circle"></i> Sẵn sàng';
+                    btnReady.classList.remove('active');
+                }
+            }
+        }
+
+        function toggleReady() {
+            isReady = !isReady;
+            socket.emit('toggle_ready', {
+                room_code: ROOM_CODE,
+                ready: isReady
+            });
+            updateUI();
+        }
+
+        function startGame() {
+            socket.emit('start_game', {
+                room_code: ROOM_CODE
+            });
+        }
+
+        function showCountdown() {
+            const overlay = document.getElementById('countdownOverlay');
+            const numberEl = document.getElementById('countdownNumber');
+            overlay.classList.add('show');
+            
+            let count = 3;
+            numberEl.textContent = count;
+            
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    numberEl.textContent = count;
+                    numberEl.style.animation = 'none';
+                    setTimeout(() => numberEl.style.animation = 'countPulse 1s ease-in-out', 10);
+                } else {
+                    clearInterval(interval);
+                    numberEl.textContent = 'GO!';
+                    setTimeout(() => {
+                        window.location.href = '/game/' + ROOM_CODE;
+                    }, 500);
+                }
+            }, 1000);
+        }
+
+        function leaveRoom() {
+            if (confirm('Bạn có chắc muốn rời phòng?')) {
+                socket.emit('leave_waiting_room', { room_code: ROOM_CODE });
+                window.location.href = '/lobby';
+            }
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(ROOM_CODE);
+            alert('Đã copy mã phòng: ' + ROOM_CODE);
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (message) {
+                socket.emit('waiting_room_chat', {
+                    room_code: ROOM_CODE,
+                    username: USERNAME,
+                    message: message
+                });
+                input.value = '';
+            }
+        }
+
+        function addChatMessage(username, message) {
+            const container = document.getElementById('chatMessages');
+            const p = document.createElement('p');
+            if (username === 'Hệ thống') {
+                p.innerHTML = `<em>${message}</em>`;
+            } else {
+                p.innerHTML = `<strong>${username}:</strong> ${message}`;
+            }
+            container.appendChild(p);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Logout function
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.href = '/';
+        }
+
+        // Enter to send chat
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        // Warn before leaving
+        window.addEventListener('beforeunload', (e) => {
+            socket.emit('leave_waiting_room', { room_code: ROOM_CODE });
+        });
+    </script>
+</body>
+</html>

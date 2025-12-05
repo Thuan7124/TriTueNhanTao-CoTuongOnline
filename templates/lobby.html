@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-chess-knight"></i>
+                <span>Cờ Tướng Online</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Trang chủ</a>
+                <a href="/lobby" class="nav-link active">Chơi ngay</a>
+                <a href="/leaderboard" class="nav-link">Xếp hạng</a>
+            </nav>
+            <div class="auth-buttons" id="authButtons">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="elo"><i class="fas fa-trophy"></i> {{ user.elo_rating or 1200 }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <button class="btn btn-outline" onclick="window.location.href='/'">Đăng nhập</button>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="lobby-main">
+        <div class="container">
+            <h1 class="page-title"><i class="fas fa-gamepad"></i> Chọn chế độ chơi</h1>
+            
+            <div class="game-modes">
+                <!-- Play vs AI -->
+                <div class="mode-card">
+                    <div class="mode-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h2>Chơi với AI</h2>
+                    <p>Luyện tập với máy tính ở nhiều mức độ khó</p>
+                    
+                    <div class="difficulty-select">
+                        <label>Chọn độ khó:</label>
+                        <div class="difficulty-buttons">
+                            <button class="diff-btn active" data-level="easy">
+                                <i class="fas fa-baby"></i> Dễ
+                            </button>
+                            <button class="diff-btn" data-level="medium">
+                                <i class="fas fa-user"></i> Trung bình
+                            </button>
+                            <button class="diff-btn" data-level="hard">
+                                <i class="fas fa-brain"></i> Khó
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="color-select">
+                        <label>Chọn màu quân:</label>
+                        <div class="color-buttons">
+                            <button class="color-btn active" data-color="red">
+                                <span class="color-dot red"></span> Quân Đỏ (đi trước)
+                            </button>
+                            <button class="color-btn" data-color="black">
+                                <span class="color-dot black"></span> Quân Đen
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-lg btn-block" onclick="createAIGame()">
+                        <i class="fas fa-play"></i> Bắt đầu chơi
+                    </button>
+                </div>
+
+                <!-- Play vs Player -->
+                <div class="mode-card">
+                    <div class="mode-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h2>Chơi với người</h2>
+                    <p>Tạo phòng hoặc tham gia phòng của bạn bè</p>
+                    
+                    <div class="pvp-options">
+                        <!-- Create Room -->
+                        <div class="pvp-section">
+                            <h3><i class="fas fa-plus-circle"></i> Tạo phòng mới</h3>
+                            <div class="color-select">
+                                <label>Chọn màu quân:</label>
+                                <div class="color-buttons pvp-color">
+                                    <button class="color-btn active" data-color="red">
+                                        <span class="color-dot red"></span> Đỏ
+                                    </button>
+                                    <button class="color-btn" data-color="black">
+                                        <span class="color-dot black"></span> Đen
+                                    </button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary btn-block" onclick="createPVPGame()">
+                                <i class="fas fa-door-open"></i> Tạo phòng
+                            </button>
+                        </div>
+                        
+                        <!-- Join Room -->
+                        <div class="pvp-section">
+                            <h3><i class="fas fa-sign-in-alt"></i> Tham gia phòng</h3>
+                            <div class="join-form">
+                                <input type="text" id="roomCodeInput" placeholder="Nhập mã phòng (VD: ABC123)" maxlength="6">
+                                <button class="btn btn-primary" onclick="joinGame()">
+                                    <i class="fas fa-play"></i> Tham gia
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting Rooms -->
+            <div class="waiting-rooms">
+                <h2><i class="fas fa-list"></i> Phòng đang chờ</h2>
+                <div class="rooms-list" id="roomsList">
+                    <p class="no-rooms">Đang tải danh sách phòng...</p>
+                </div>
+                <button class="btn btn-outline" onclick="loadWaitingRooms()">
+                    <i class="fas fa-sync-alt"></i> Làm mới
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Room Created Modal -->
+    <div class="modal" id="roomCreatedModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('roomCreatedModal')">&times;</span>
+            <h2><i class="fas fa-check-circle"></i> Tạo phòng thành công!</h2>
+            <p>Chia sẻ mã phòng này cho bạn bè:</p>
+            <div class="room-code-display">
+                <span id="createdRoomCode">ABC123</span>
+                <button class="btn btn-outline" onclick="copyRoomCode()">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="goToGame()">
+                <i class="fas fa-door-open"></i> Vào phòng chờ
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content loading-modal">
+            <div class="loading-spinner"></div>
+            <p>Đang tạo phòng...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // State
+        let selectedDifficulty = 'easy';
+        let selectedColorAI = 'red';
+        let selectedColorPVP = 'red';
+        let createdRoomCode = '';
+
+        // Difficulty selection
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedDifficulty = this.dataset.level;
+            });
+        });
+
+        // Color selection for AI
+        document.querySelectorAll('.mode-card:first-child .color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.parentElement.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedColorAI = this.dataset.color;
+            });
+        });
+
+        // Color selection for PVP
+        document.querySelectorAll('.pvp-color .color-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.parentElement.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedColorPVP = this.dataset.color;
+            });
+        });
+
+        // Create AI Game
+        async function createAIGame() {
+            showLoading();
+            try {
+                const response = await fetch('/api/create_game', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        game_type: 'pve',
+                        ai_difficulty: selectedDifficulty,
+                        player_color: selectedColorAI
+                    })
+                });
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.ok) {
+                    window.location.href = '/game/' + data.room_code;
+                } else {
+                    alert(data.message || 'Không thể tạo game');
+                }
+            } catch (error) {
+                hideLoading();
+                alert('Có lỗi xảy ra, vui lòng thử lại');
+            }
+        }
+
+        // Create PVP Game
+        async function createPVPGame() {
+            showLoading();
+            try {
+                const response = await fetch('/api/create_game', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        game_type: 'pvp',
+                        player_color: selectedColorPVP
+                    })
+                });
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.ok) {
+                    createdRoomCode = data.room_code;
+                    document.getElementById('createdRoomCode').textContent = createdRoomCode;
+                    document.getElementById('roomCreatedModal').style.display = 'flex';
+                } else {
+                    alert(data.message || 'Không thể tạo phòng');
+                }
+            } catch (error) {
+                hideLoading();
+                alert('Có lỗi xảy ra, vui lòng thử lại');
+            }
+        }
+
+        // Join Game
+        async function joinGame() {
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (!roomCode) {
+                alert('Vui lòng nhập mã phòng');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/join_game', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({room_code: roomCode})
+                });
+                const data = await response.json();
+                
+                if (data.ok) {
+                    // Chuyển đến waiting room thay vì game
+                    window.location.href = data.redirect || '/waiting/' + roomCode;
+                } else {
+                    alert(data.message || 'Không thể tham gia phòng');
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra, vui lòng thử lại');
+            }
+        }
+
+        // Load Waiting Rooms
+        async function loadWaitingRooms() {
+            const listDiv = document.getElementById('roomsList');
+            listDiv.innerHTML = '<p class="loading-text">Đang tải...</p>';
+            
+            try {
+                const response = await fetch('/api/waiting_games');
+                const data = await response.json();
+                
+                if (data.ok && data.games && data.games.length > 0) {
+                    listDiv.innerHTML = data.games.map(game => `
+                        <div class="room-item">
+                            <div class="room-info">
+                                <span class="room-code">${game.room_code}</span>
+                                <span class="room-creator">Tạo bởi: ${game.creator_name || 'Guest'}</span>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="joinRoom('${game.room_code}')">
+                                Tham gia
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    listDiv.innerHTML = '<p class="no-rooms">Không có phòng nào đang chờ</p>';
+                }
+            } catch (error) {
+                listDiv.innerHTML = '<p class="no-rooms">Không thể tải danh sách phòng</p>';
+            }
+        }
+
+        function joinRoom(roomCode) {
+            document.getElementById('roomCodeInput').value = roomCode;
+            joinGame();
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(createdRoomCode);
+            alert('Đã copy mã phòng!');
+        }
+
+        function goToGame() {
+            // Chuyển đến waiting room thay vì game trực tiếp
+            window.location.href = '/waiting/' + createdRoomCode;
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loadingModal').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').style.display = 'none';
+        }
+
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.reload();
+        }
+
+        // Load rooms on page load
+        loadWaitingRooms();
+
+        // Enter key for room code input
+        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinGame();
+            }
+        });
+    </script>
+</body>
+</html>

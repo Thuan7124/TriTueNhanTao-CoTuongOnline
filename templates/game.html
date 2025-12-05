@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chơi Cờ - {{ room_code }} | Cờ Tướng Online</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body class="game-page">
+    <!-- Header -->
+    <header class="header game-header">
+        <div class="container">
+            <div class="logo">
+                <a href="/">
+                    <i class="fas fa-chess-knight"></i>
+                    <span>Cờ Tướng</span>
+                </a>
+            </div>
+            <div class="game-info-header">
+                <span class="room-badge">
+                    <i class="fas fa-door-open"></i> Phòng: <strong id="roomCodeDisplay">{{ room_code }}</strong>
+                </span>
+                <button class="btn btn-outline btn-sm" onclick="copyRoomCode()">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div class="header-actions">
+                {% if user %}
+                <div class="user-dropdown">
+                    <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+                        <img src="{{ user.avatar_url or '/static/assets/default-avatar.svg' }}" alt="Avatar" class="user-avatar-small">
+                        <span class="username">{{ user.username }}</span>
+                        <i class="fas fa-bars dropdown-arrow"></i>
+                    </button>
+                    <div class="user-dropdown-menu" id="userDropdownMenu">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Thông tin cá nhân
+                        </a>
+                        <a href="/profile#history" class="dropdown-item">
+                            <i class="fas fa-history"></i> Lịch sử đấu
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-danger" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                <button class="btn btn-outline btn-sm" onclick="leaveGame()">
+                    <i class="fas fa-sign-out-alt"></i> Rời phòng
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Container -->
+    <main class="game-container">
+        <!-- Left Panel - Game Info -->
+        <aside class="game-panel left-panel">
+            <!-- Opponent Info -->
+            <div class="player-card opponent">
+                <div class="player-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="player-info">
+                    <span class="player-name" id="opponentName">
+                        {% if game.game_type == 'pve' %}
+                        AI ({{ game.ai_difficulty or 'medium' }})
+                        {% else %}
+                        Đang chờ...
+                        {% endif %}
+                    </span>
+                    <span class="player-side" id="opponentSide">Quân Đen</span>
+                </div>
+                <div class="player-stats">
+                    <div class="player-timer" id="opponentTimer">--:--</div>
+                    <div class="player-score">
+                        <i class="fas fa-star"></i>
+                        <span id="opponentScore">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Captured Pieces -->
+            <div class="captured-pieces">
+                <h4><i class="fas fa-skull"></i> Quân bị ăn</h4>
+                <div class="captured-list" id="opponentCaptured"></div>
+            </div>
+
+            <!-- Move History -->
+            <div class="move-history">
+                <h4><i class="fas fa-history"></i> Lịch sử nước đi</h4>
+                <div class="moves-list" id="movesList"></div>
+            </div>
+        </aside>
+
+        <!-- Center - Chess Board -->
+        <div class="board-wrapper">
+            <!-- Game Info Bar -->
+            <div class="game-info-bar">
+                <div class="elapsed-time">
+                    <i class="fas fa-clock"></i>
+                    <span>Thời gian: </span>
+                    <span id="elapsedTime">00:00</span>
+                </div>
+            </div>
+            
+            <!-- Game Status -->
+            <div class="game-status" id="gameStatus">
+                <span class="status-text">Đang tải...</span>
+            </div>
+
+            <!-- Chess Board -->
+            <div class="chess-board-container">
+                <canvas id="boardCanvas" width="540" height="600"></canvas>
+                <div class="board-overlay" id="boardOverlay">
+                    <div class="overlay-content">
+                        <div class="loading-spinner"></div>
+                        <p>Đang kết nối...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Controls -->
+            <div class="game-controls">
+                <button class="btn btn-outline" id="btnUndo" onclick="requestUndo()" disabled>
+                    <i class="fas fa-undo"></i> Đi lại
+                </button>
+                <button class="btn btn-outline" id="btnDraw" onclick="offerDraw()">
+                    <i class="fas fa-handshake"></i> Cầu hòa
+                </button>
+                <button class="btn btn-danger" id="btnResign" onclick="confirmResign()">
+                    <i class="fas fa-flag"></i> Đầu hàng
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Player Info & Chat -->
+        <aside class="game-panel right-panel">
+            <!-- Player Info -->
+            <div class="player-card player">
+                <div class="player-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="player-info">
+                    <span class="player-name" id="playerName">
+                        {% if user %}{{ user.username }}{% else %}Guest{% endif %}
+                    </span>
+                    <span class="player-side" id="playerSide">Quân Đỏ</span>
+                </div>
+                <div class="player-stats">
+                    <div class="player-timer" id="playerTimer">--:--</div>
+                    <div class="player-score">
+                        <i class="fas fa-star"></i>
+                        <span id="playerScore">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Captured Pieces -->
+            <div class="captured-pieces">
+                <h4><i class="fas fa-trophy"></i> Quân đã ăn</h4>
+                <div class="captured-list" id="playerCaptured"></div>
+            </div>
+
+            <!-- Chat -->
+            <div class="chat-box">
+                <h4><i class="fas fa-comments"></i> Chat</h4>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." maxlength="200">
+                    <button class="btn btn-primary" onclick="sendChat()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content game-over-modal">
+            <div class="game-over-icon" id="gameOverIcon">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h2 id="gameOverTitle">Kết thúc ván đấu!</h2>
+            <p id="gameOverMessage">Bạn đã thắng!</p>
+            <div class="game-over-buttons">
+                <button class="btn btn-primary" onclick="playAgain()">
+                    <i class="fas fa-redo"></i> Chơi lại
+                </button>
+                <button class="btn btn-outline" onclick="backToLobby()">
+                    <i class="fas fa-home"></i> Về Lobby
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draw Offer Modal -->
+    <div class="modal" id="drawOfferModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-handshake"></i> Đề nghị hòa</h2>
+            <p>Đối thủ đề nghị hòa. Bạn có đồng ý?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="acceptDraw()">Đồng ý</button>
+                <button class="btn btn-outline" onclick="declineDraw()">Từ chối</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resign Confirm Modal -->
+    <div class="modal" id="resignModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-flag"></i> Xác nhận đầu hàng</h2>
+            <p>Bạn có chắc muốn đầu hàng?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" onclick="resign()">Đầu hàng</button>
+                <button class="btn btn-outline" onclick="closeModal('resignModal')">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden data -->
+    <script id="game-data" type="application/json">
+    {
+        "roomCode": "{{ room_code }}",
+        "gameId": {% if game %}{{ game.game_id }}{% else %}null{% endif %},
+        "gameType": "{{ game.game_type if game else 'pve' }}",
+        "aiDifficulty": "{{ game.ai_difficulty if game else 'medium' }}",
+        "currentUser": {% if user %}{"id": {{ user.user_id }}, "username": "{{ user.username }}"}{% else %}null{% endif %},
+        "redPlayerId": {% if game and game.red_player_id %}{{ game.red_player_id }}{% else %}null{% endif %},
+        "blackPlayerId": {% if game and game.black_player_id %}{{ game.black_player_id }}{% else %}null{% endif %}
+    }
+    </script>
+    <script>
+        const GAME_DATA = JSON.parse(document.getElementById('game-data').textContent);
+        
+        // Logout function
+        async function logout() {
+            await fetch('/api/logout', {method: 'POST'});
+            window.location.href = '/';
+        }
+    </script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
