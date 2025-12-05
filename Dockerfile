@@ -36,5 +36,6 @@ EXPOSE 8080
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Start command - dùng sh -c để spawn shell và đọc $PORT
-CMD sh -c "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 600 app:app"
+# Start command - dùng ENTRYPOINT với /bin/sh để đảm bảo shell được spawn
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-8080} --timeout 600 app:app"]
