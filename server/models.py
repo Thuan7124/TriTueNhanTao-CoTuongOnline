@@ -304,6 +304,19 @@ class GameModel:
                 db.execute_non_query(query, (player_id, game_id))
     
     @staticmethod
+    def remove_player(game_id, side):
+        """Xóa người chơi khỏi game (khi disconnect)"""
+        try:
+            if side == 'red':
+                query = "UPDATE Games SET red_player_id = NULL, red_player_name = NULL WHERE game_id = ?"
+            else:
+                query = "UPDATE Games SET black_player_id = NULL, black_player_name = NULL WHERE game_id = ?"
+            db.execute_non_query(query, (game_id,))
+            logger.info(f"[remove_player] Removed {side} player from game {game_id}")
+        except Exception as e:
+            logger.error(f"[remove_player] Error: {e}")
+    
+    @staticmethod
     def get_waiting_games():
         """Lấy danh sách các game đang chờ người chơi"""
         query = """

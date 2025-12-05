@@ -764,15 +764,27 @@ def on_disconnect():
         if socket_id == request.sid:
             disconnected_user_id = user_id
             del USER_SOCKETS[user_id]
+            logger.info(f"[disconnect] Found user_id={user_id} for socket={request.sid}")
             break
+    
+    # Tìm user trong waiting rooms bằng socket_id nếu không tìm thấy user_id
+    for room_code, waiting_room in list(WAITING_ROOMS.items()):
+        for color, player in list(waiting_room.get('players', {}).items()):
+            if player and player.get('socket_id') == request.sid:
+                if disconnected_user_id is None:
+                    disconnected_user_id = player.get('user_id')
+                logger.info(f"[disconnect] Found player {color} in room {room_code} by socket_id")
+                break
     
     # Cleanup waiting rooms nếu user rời đi
     if disconnected_user_id:
         for room_code, waiting_room in list(WAITING_ROOMS.items()):
+            room = f"waiting_{room_code}"
+            
             # Nếu host disconnect, xóa waiting room
             if waiting_room.get('host_id') == disconnected_user_id:
+                logger.info(f"[disconnect] Host {disconnected_user_id} left room {room_code}, deleting room")
                 # Thông báo cho người còn lại
-                room = f"waiting_{room_code}"
                 emit("waiting_error", {
                     "message": "Chủ phòng đã ngắt kết nối, phòng bị hủy",
                     "redirect": "/lobby"
@@ -786,12 +798,31 @@ def on_disconnect():
                 # Nếu không phải host, chỉ xóa player đó
                 for color, player in list(waiting_room.get('players', {}).items()):
                     if player and player.get('user_id') == disconnected_user_id:
+                        logger.info(f"[disconnect] Player {color} ({player.get('username')}) left room {room_code}")
                         del waiting_room['players'][color]
-                        room = f"waiting_{room_code}"
+                        
+                        # Cập nhật database - xóa player khỏi game
+                        if waiting_room.get('game_id'):
+                            GameModel.remove_player(waiting_room['game_id'], color)
+                        
+                        # Thông báo player rời phòng
                         emit("player_left_waiting", {
                             'color': color,
                             'username': player.get('username', 'Unknown')
                         }, to=room)
+                        
+                        # Broadcast room_update để đồng bộ
+                        players_data = {'red': None, 'black': None}
+                        for c in ['red', 'black']:
+                            if c in waiting_room['players'] and waiting_room['players'][c]:
+                                p = waiting_room['players'][c]
+                                players_data[c] = {
+                                    'name': p['username'],
+                                    'ready': p['ready'],
+                                    'isHost': p.get('is_host', False)
+                                }
+                        emit("room_update", {'players': players_data}, to=room)
+                        break
 
 
 @socketio.on("join_game")
@@ -1319,6 +1350,14 @@ def on_join_waiting_room(data):
     
     waiting_room = WAITING_ROOMS[room_code]
     
+    # Lưu socket_id vào USER_SOCKETS
+    if user_id:
+        USER_SOCKETS[user_id] = request.sid
+    
+    # Đếm số người thực sự trong phòng
+    current_player_count = sum(1 for c in ['red', 'black'] 
+                               if c in waiting_room['players'] and waiting_room['players'][c])
+    
     # Xác định màu của người chơi này
     my_color = None
     is_new_player = True
@@ -1326,18 +1365,28 @@ def on_join_waiting_room(data):
     for color, player in waiting_room['players'].items():
         if player and player.get('user_id') == user_id:
             my_color = color
-            # Cập nhật username nếu cần
+            # Cập nhật username và socket_id
             player['username'] = username
+            player['socket_id'] = request.sid
             is_new_player = False
             break
     
     # Nếu chưa có trong phòng, thêm vào vị trí trống
     if not my_color:
+        # Kiểm tra phòng đã đủ 2 người chưa
+        if current_player_count >= 2:
+            logger.warning(f"[join_waiting_room] Room {room_code} is full, rejecting user {username}")
+            leave_room(room)
+            emit("waiting_error", {"message": "Phòng đã đủ 2 người chơi", "redirect": "/lobby"})
+            return
+        
         if 'red' not in waiting_room['players'] or waiting_room['players'].get('red') is None:
             my_color = 'red'
         elif 'black' not in waiting_room['players'] or waiting_room['players'].get('black') is None:
             my_color = 'black'
         else:
+            logger.warning(f"[join_waiting_room] Room {room_code} has no empty slot")
+            leave_room(room)
             emit("waiting_error", {"message": "Phòng đã đủ người", "redirect": "/lobby"})
             return
         
@@ -1346,7 +1395,8 @@ def on_join_waiting_room(data):
             'user_id': user_id,
             'username': username,
             'ready': False,
-            'is_host': is_host
+            'is_host': is_host,
+            'socket_id': request.sid
         }
         
         # Cập nhật database với tên người chơi
