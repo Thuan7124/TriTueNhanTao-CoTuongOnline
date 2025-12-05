@@ -309,6 +309,28 @@ function initSocket() {
             updateTurnStatus();
             drawBoard();
         }
+        
+        // Cập nhật thông tin người chơi
+        if (data.players) {
+            const myColor = gameState.playerColor || 'red';
+            const opponentColor = myColor === 'red' ? 'black' : 'red';
+            
+            // Cập nhật tên người chơi
+            const playerNameEl = document.getElementById('playerName');
+            const opponentNameEl = document.getElementById('opponentName');
+            
+            if (playerNameEl && data.players[myColor]) {
+                playerNameEl.textContent = data.players[myColor].name || 'Bạn';
+            }
+            if (opponentNameEl && data.players[opponentColor]) {
+                opponentNameEl.textContent = data.players[opponentColor].name || 'Đối thủ';
+            }
+            
+            console.log('Updated player names:', {
+                player: data.players[myColor]?.name,
+                opponent: data.players[opponentColor]?.name
+            });
+        }
     });
     
     socket.on('move_made', (data) => {

@@ -869,11 +869,21 @@ def on_join_game(data):
         game_data = ACTIVE_GAMES[game_id]
         board = game_data['board']
         
-        # Gửi trạng thái hiện tại cho client
+        # Cập nhật socket_id cho player này
+        for color in ['red', 'black']:
+            if game_data['players'][color].get('user_id') == user_id:
+                game_data['players'][color]['socket_id'] = request.sid
+                break
+        
+        # Gửi trạng thái hiện tại cho client (bao gồm thông tin players)
         emit("game_state", {
             "board": board.to_dict(),
             "room_code": room_code,
-            "game_id": game_id
+            "game_id": game_id,
+            "players": {
+                "red": {"name": game_data['players']['red'].get('name', 'Người chơi Đỏ')},
+                "black": {"name": game_data['players']['black'].get('name', 'Người chơi Đen')}
+            }
         })
     else:
         # Load từ database
@@ -916,8 +926,8 @@ def on_join_game(data):
                 'ai': ChessAI(level=ai_diff, color=ai_color) if game['game_type'] == 'pve' and ai_color else None,
                 'ai_color': ai_color,
                 'players': {
-                    'red': {'user_id': game['red_player_id'], 'socket_id': None, 'name': red_name},
-                    'black': {'user_id': game['black_player_id'], 'socket_id': None, 'name': black_name}
+                    'red': {'user_id': game['red_player_id'], 'socket_id': request.sid if game['red_player_id'] == user_id else None, 'name': red_name},
+                    'black': {'user_id': game['black_player_id'], 'socket_id': request.sid if game['black_player_id'] == user_id else None, 'name': black_name}
                 }
             }
             ROOM_TO_GAME[room_code] = game_id
@@ -925,7 +935,11 @@ def on_join_game(data):
             emit("game_state", {
                 "board": board.to_dict(),
                 "room_code": room_code,
-                "game_id": game_id
+                "game_id": game_id,
+                "players": {
+                    "red": {"name": red_name},
+                    "black": {"name": black_name}
+                }
             })
     
     # Thông báo cho cả phòng
