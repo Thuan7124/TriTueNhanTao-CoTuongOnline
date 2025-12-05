@@ -549,11 +549,13 @@ def api_create_game():
     
     # Xác định ai đi trước (first_turn)
     # Nếu player_goes_first = True, first_turn = player_color
-    # Nếu player_goes_first = False, first_turn = màu còn lại
+    # Nếu player_goes_first = False, first_turn = màu còn lại (AI/đối thủ)
     if player_goes_first:
         first_turn = player_color
     else:
         first_turn = 'black' if player_color == 'red' else 'red'
+    
+    logger.info(f"[create_game] player_color={player_color}, player_goes_first={player_goes_first}, first_turn={first_turn}")
     
     # Tạo room code
     room_code = generate_room_code()
@@ -614,12 +616,16 @@ def api_create_game():
         }
         ROOM_TO_GAME[room_code] = game_id
         
+        logger.info(f"[create_game] ai_color={ai_color}, first_turn={first_turn}, board.turn before AI={board.turn}")
+        
         # Nếu AI đi trước
         if first_turn == ai_color:
+            logger.info(f"[create_game] AI goes first, making move...")
             ai_move = ai_instance.choose_move(board)
             if ai_move:
                 fr, fc, tr, tc = ai_move
                 board.move(fr, fc, tr, tc)
+                logger.info(f"[create_game] AI moved, board.turn after={board.turn}")
     else:
         # PvP: Tạo waiting room
         WAITING_ROOMS[room_code] = {
