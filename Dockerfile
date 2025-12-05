@@ -30,9 +30,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Fix line endings và make start script executable
-RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
-
 # Expose port
 EXPOSE 8080
 
@@ -40,5 +37,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Start command using the shell script
-ENTRYPOINT ["./start.sh"]
+# Start command - theo hướng dẫn Railway moderator
+CMD sh -c "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 600 app:app"
