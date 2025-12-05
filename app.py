@@ -1355,18 +1355,6 @@ def on_join_waiting_room(data):
     # Log player join
     logger.info(f"[join_waiting_room] User {username} (id={user_id}) joined room {room_code} as {my_color}, is_new={is_new_player}")
     
-    # Thông báo cho người khác nếu là người mới vào
-    if is_new_player:
-        logger.info(f"[join_waiting_room] Emitting player_joined_waiting to room {room}")
-        emit("player_joined_waiting", {
-            'color': my_color,
-            'username': username,
-            'is_host': waiting_room['players'][my_color].get('is_host', False)
-        }, to=room, include_self=False)
-    
-    # Gửi thông tin phòng cho client
-    is_host = user_id == waiting_room['host_id']
-    
     # Build players data for client
     players_data = {
         'red': None,
@@ -1378,8 +1366,27 @@ def on_join_waiting_room(data):
             players_data[color] = {
                 'name': p['username'],
                 'ready': p['ready'],
-                'isHost': p['is_host']
+                'isHost': p.get('is_host', False)
             }
+    
+    logger.info(f"[join_waiting_room] Current players in room: {players_data}")
+    
+    # Thông báo cho người khác nếu là người mới vào
+    if is_new_player:
+        logger.info(f"[join_waiting_room] Emitting player_joined_waiting to room {room}")
+        emit("player_joined_waiting", {
+            'color': my_color,
+            'username': username,
+            'is_host': waiting_room['players'][my_color].get('is_host', False)
+        }, to=room, include_self=False)
+        
+        # Broadcast room_update cho TẤT CẢ người trong phòng để đồng bộ
+        emit("room_update", {
+            'players': players_data
+        }, to=room)
+    
+    # Gửi thông tin phòng cho client vừa join
+    is_host = user_id == waiting_room['host_id']
     
     emit("room_info", {
         'room_code': room_code,

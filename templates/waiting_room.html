@@ -545,6 +545,32 @@
                 addChatMessage('Hệ thống', `${data.username} đã vào phòng`);
             });
 
+            // Cập nhật toàn bộ phòng (đồng bộ)
+            socket.on('room_update', (data) => {
+                console.log('Room update:', data);
+                if (data.players) {
+                    if (data.players.red) {
+                        players.red = {
+                            name: data.players.red.name,
+                            ready: data.players.red.ready,
+                            isHost: data.players.red.isHost
+                        };
+                    } else {
+                        players.red = { name: null, ready: false, isHost: false };
+                    }
+                    if (data.players.black) {
+                        players.black = {
+                            name: data.players.black.name,
+                            ready: data.players.black.ready,
+                            isHost: data.players.black.isHost
+                        };
+                    } else {
+                        players.black = { name: null, ready: false, isHost: false };
+                    }
+                }
+                updateUI();
+            });
+
             // Người chơi sẵn sàng
             socket.on('player_ready', (data) => {
                 console.log('Player ready:', data);
