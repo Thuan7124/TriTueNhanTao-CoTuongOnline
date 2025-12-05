@@ -30,6 +30,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE 8080
 
@@ -37,5 +40,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Start command - dùng sh -c để đảm bảo biến môi trường được expand
-CMD ["/bin/sh", "-c", "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-8080} app:app"]
+# Start command using the shell script
+ENTRYPOINT ["./start.sh"]
