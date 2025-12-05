@@ -1352,8 +1352,12 @@ def on_join_waiting_room(data):
         # Cập nhật database với tên người chơi
         GameModel.join_game(waiting_room['game_id'], user_id, my_color, username)
     
+    # Log player join
+    logger.info(f"[join_waiting_room] User {username} (id={user_id}) joined room {room_code} as {my_color}, is_new={is_new_player}")
+    
     # Thông báo cho người khác nếu là người mới vào
     if is_new_player:
+        logger.info(f"[join_waiting_room] Emitting player_joined_waiting to room {room}")
         emit("player_joined_waiting", {
             'color': my_color,
             'username': username,
@@ -1389,18 +1393,23 @@ def on_join_waiting_room(data):
 def on_toggle_ready(data):
     """Người chơi bấm sẵn sàng"""
     room_code = data.get("room_code")
+    user_id = data.get("user_id") or session.get('user_id')
     ready = data.get("ready", False)
     
     if room_code not in WAITING_ROOMS:
+        logger.warning(f"[toggle_ready] Room {room_code} not found in WAITING_ROOMS")
         return
     
     waiting_room = WAITING_ROOMS[room_code]
     room = f"waiting_{room_code}"
     
+    logger.info(f"[toggle_ready] User {user_id} in room {room_code}, ready={ready}")
+    
     # Tìm người chơi này
     for color, player in waiting_room['players'].items():
-        if player and player.get('user_id') == session.get('user_id'):
+        if player and player.get('user_id') == user_id:
             player['ready'] = ready
+            logger.info(f"[toggle_ready] Emitting player_ready for {color}, ready={ready}")
             emit("player_ready", {
                 'color': color,
                 'username': player['username'],
@@ -1413,6 +1422,7 @@ def on_toggle_ready(data):
 def on_start_game(data):
     """Host bắt đầu game"""
     room_code = data.get("room_code")
+    user_id = data.get("user_id") or session.get('user_id')
     
     if room_code not in WAITING_ROOMS:
         emit("waiting_error", {"message": "Phòng không tồn tại"})
@@ -1421,8 +1431,10 @@ def on_start_game(data):
     waiting_room = WAITING_ROOMS[room_code]
     room = f"waiting_{room_code}"
     
+    logger.info(f"[start_game] User {user_id} trying to start game in room {room_code}")
+    
     # Kiểm tra là host
-    if session.get('user_id') != waiting_room['host_id']:
+    if user_id != waiting_room['host_id']:
         emit("waiting_error", {"message": "Chỉ chủ phòng mới có thể bắt đầu"})
         return
     

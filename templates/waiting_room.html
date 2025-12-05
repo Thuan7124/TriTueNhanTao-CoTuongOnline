@@ -687,6 +687,7 @@
             isReady = !isReady;
             socket.emit('toggle_ready', {
                 room_code: ROOM_CODE,
+                user_id: USER_ID,
                 ready: isReady
             });
             updateUI();
@@ -694,7 +695,8 @@
 
         function startGame() {
             socket.emit('start_game', {
-                room_code: ROOM_CODE
+                room_code: ROOM_CODE,
+                user_id: USER_ID
             });
         }
 
