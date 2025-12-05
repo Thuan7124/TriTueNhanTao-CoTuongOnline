@@ -37,5 +37,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Start command
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "app:app"]
+# Start command - dùng shell form để đọc biến $PORT từ Railway
+CMD gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
