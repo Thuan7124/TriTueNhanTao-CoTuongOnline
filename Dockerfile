@@ -34,8 +34,7 @@ COPY . .
 EXPOSE 8080
 
 # Environment variables
-ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 
-# Start command - theo hướng dẫn Railway moderator
-CMD sh -c "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 600 app:app"
+# Start command - hardcode port 8080
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "--timeout", "600", "app:app"]
