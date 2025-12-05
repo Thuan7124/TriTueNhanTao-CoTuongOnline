@@ -42,8 +42,15 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 env = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config.get(env, config['default']))
 
-# Khởi tạo Socket.IO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Khởi tạo Socket.IO - dùng eventlet cho production (gunicorn)
+# Khi chạy local có thể dùng threading
+import os as os_check
+if os_check.environ.get('RAILWAY_ENVIRONMENT') or os_check.environ.get('PORT'):
+    # Production - dùng eventlet
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, engineio_logger=True)
+else:
+    # Local development - dùng threading
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # ============================================
 # In-memory storage cho các game đang chơi
