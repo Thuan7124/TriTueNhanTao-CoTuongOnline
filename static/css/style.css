@@ -660,7 +660,8 @@ img {
 }
 
 .diff-btn,
-.color-btn {
+.color-btn,
+.turn-btn {
     flex: 1;
     padding: 12px;
     border: 2px solid #e0e0e0;
@@ -676,15 +677,33 @@ img {
 }
 
 .diff-btn:hover,
-.color-btn:hover {
+.color-btn:hover,
+.turn-btn:hover {
     border-color: var(--primary-color);
 }
 
 .diff-btn.active,
-.color-btn.active {
+.color-btn.active,
+.turn-btn.active {
     background: var(--primary-color);
     color: var(--white);
     border-color: var(--primary-color);
+}
+
+.turn-select {
+    margin-bottom: 20px;
+}
+
+.turn-select label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+.turn-buttons {
+    display: flex;
+    gap: 10px;
 }
 
 .color-dot {
